@@ -92,6 +92,32 @@ class Dataset_Stock_Price(Dataset):
         seq_y = seq_y[new_columns].values 
         return seq_x, seq_y
 
+    #def __getitem__(self, index):
+    #    index_1 = self.df_index[index][0]
+    #    data = self.df_list[index_1]
+    #    
+    #    index_2 = self.df_index[index][1]
+
+    #    s_begin = index_2
+    #    s_end = s_begin + self.seq_len
+
+    #    r_begin = s_end
+    #    r_end = r_begin + self.pred_len
+
+    #    seq_x = data[s_begin:s_end]
+    #    new_x_columns = np.ones((len(seq_x), 4), dtype=float)
+    #    seq_x = np.hstack((seq_x, new_x_columns)) 
+    #    for i in range(len(seq_x)):
+    #        seq_x[i][5] = (seq_x[i][1]/seq_x[0][1]-1)*100
+    #        seq_x[i][6] = (seq_x[i][2]/seq_x[0][1]-1)*100
+    #        seq_x[i][7] = (seq_x[i][3]/seq_x[0][1]-1)*100
+    #        seq_x[i][8] = (seq_x[i][4]/seq_x[0][1]-1)*100
+    #    
+
+    #    seq_y = data[r_begin:r_end]
+
+    #    return seq_x, seq_y
+
     def __len__(self):
         return len(self.df_index)
 
