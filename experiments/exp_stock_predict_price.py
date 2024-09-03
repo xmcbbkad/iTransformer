@@ -13,9 +13,9 @@ import numpy as np
 warnings.filterwarnings('ignore')
 
 
-class Exp_Stock(Exp_Basic):
+class Exp_Stock_predict_price(Exp_Basic):
     def __init__(self, args):
-        super(Exp_Stock, self).__init__(args)
+        super(Exp_Stock_predict_price, self).__init__(args)
 
     def _build_model(self):
         model = self.model_dict[self.args.model].Model(self.args).float()
@@ -227,21 +227,21 @@ class Exp_Stock(Exp_Basic):
                 batch_y = batch_y[:, -self.args.pred_len:, f_dim:].to(self.device)
                 outputs = outputs.detach().cpu().numpy()
                 batch_y = batch_y.detach().cpu().numpy()
-                if test_data.scale and self.args.inverse:
-                    shape = outputs.shape
-                    outputs = test_data.inverse_transform(outputs.squeeze(0)).reshape(shape)
-                    batch_y = test_data.inverse_transform(batch_y.squeeze(0)).reshape(shape)
+                #if test_data.scale and self.args.inverse:
+                #    shape = outputs.shape
+                #    outputs = test_data.inverse_transform(outputs.squeeze(0)).reshape(shape)
+                #    batch_y = test_data.inverse_transform(batch_y.squeeze(0)).reshape(shape)
 
                 pred = outputs
                 true = batch_y
 
                 preds.append(pred)
                 trues.append(true)
-                if i % 20 == 0:
+                if i % 200 == 0:
                     input = batch_x.detach().cpu().numpy()
-                    if test_data.scale and self.args.inverse:
-                        shape = input.shape
-                        input = test_data.inverse_transform(input.squeeze(0)).reshape(shape)
+                    #if test_data.scale and self.args.inverse:
+                    #    shape = input.shape
+                    #    input = test_data.inverse_transform(input.squeeze(0)).reshape(shape)
                     gt = np.concatenate((input[0, :, -1], true[0, :, -1]), axis=0)
                     pd = np.concatenate((input[0, :, -1], pred[0, :, -1]), axis=0)
                     visual(gt, pd, os.path.join(folder_path, str(i) + '.pdf'))

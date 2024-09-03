@@ -1,6 +1,6 @@
 import argparse
 import torch
-from experiments.exp_stock import Exp_Stock
+from experiments.exp_stock_predict_price import Exp_Stock_predict_price
 import random
 import numpy as np
 
@@ -99,7 +99,7 @@ if __name__ == '__main__':
     print('Args in experiment:')
     print(args)
 
-    Exp = Exp_Stock
+    Exp = Exp_Stock_predict_price
 
 
     if args.is_training:

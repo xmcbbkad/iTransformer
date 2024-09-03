@@ -2,10 +2,10 @@ export CUDA_VISIBLE_DEVICES=0
 
 model_name=iTransformer
 
-python -u run_stock.py \
+python -u run_stock_predict_price.py \
   --is_training 1 \
-  --root_path ./dataset/stock/ \
-  --data_config_file TSLA.json \
+  --root_path dataset/stock/taobao/TSLA \
+  --data_config_file dataset/stock/TSLA.json \
   --model_id TSLA_30_30 \
   --model $model_name \
   --data stock \

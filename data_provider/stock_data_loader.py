@@ -26,7 +26,8 @@ class Dataset_Stock_Price(Dataset):
         #import pdb; pdb.set_trace()
         csv_files = []
 
-        dict_data_config = json.load(open(os.path.join(root_path, data_config_file), 'r'))
+        #dict_data_config = json.load(open(os.path.join(root_path, data_config_file), 'r'))
+        dict_data_config = json.load(open(data_config_file, 'r'))
         list_date = dict_data_config[flag]        
 
         for root, dirs,files in os.walk(root_path):
@@ -35,8 +36,9 @@ class Dataset_Stock_Price(Dataset):
                     csv_files.append(os.path.join(root, file))
         
         csv_files.sort()
-        for file in csv_files:
-            df_this = pd.read_csv(file).iloc[::-1].reset_index(drop=True)
+        for f_index in range(len(csv_files)):
+            print("{}/{}".format(f_index, len(csv_files)))
+            df_this = pd.read_csv(csv_files[f_index]).iloc[::-1].reset_index(drop=True)
             df_this = df_this[['date', 'open', 'high', 'low', 'close']]
             #data = df_this.values
             #self.df_list.append(data)
@@ -90,49 +92,92 @@ class Dataset_Stock_Price(Dataset):
         seq_y = seq_y[new_columns].values 
         return seq_x, seq_y
 
-    #def __getitem__(self, index):
-    #    index_1 = self.df_index[index][0]
-    #    data = self.df_list[index_1]
-    #    
-    #    index_2 = self.df_index[index][1]
+    def __len__(self):
+        return len(self.df_index)
 
-    #    s_begin = index_2
-    #    s_end = s_begin + self.seq_len
+class Dataset_Stock_UpOrDown(Dataset):
+    def __init__(self, root_path, data_config_file, flag, size, features="MS"):
+        self.seq_len = size[0]
+        self.pred_len = size[2]
+        
+        self.df_list = []
+        self.df_index = []
+        #import pdb; pdb.set_trace()
+        csv_files = []
 
-    #    r_begin = s_end
-    #    r_end = r_begin + self.pred_len
+        #dict_data_config = json.load(open(os.path.join(root_path, data_config_file), 'r'))
+        dict_data_config = json.load(open(data_config_file, 'r'))
+        list_date = dict_data_config[flag]        
 
-    #    seq_x = data[s_begin:s_end]
-    #    new_x_columns = np.ones((len(seq_x), 4), dtype=float)
-    #    seq_x = np.hstack((seq_x, new_x_columns)) 
-    #    for i in range(len(seq_x)):
-    #        seq_x[i][5] = (seq_x[i][1]/seq_x[0][1]-1)*100
-    #        seq_x[i][6] = (seq_x[i][2]/seq_x[0][1]-1)*100
-    #        seq_x[i][7] = (seq_x[i][3]/seq_x[0][1]-1)*100
-    #        seq_x[i][8] = (seq_x[i][4]/seq_x[0][1]-1)*100
-    #    
+        for root, dirs,files in os.walk(root_path):
+            for file in files:
+                if file.lower().endswith(".csv") and in_date_list(file, list_date):
+                    csv_files.append(os.path.join(root, file))
+        
+        csv_files.sort()
+        for f_index in range(len(csv_files)):
+            #import pdb; pdb.set_trace()
+            df_this = pd.read_csv(csv_files[f_index]).iloc[::-1].reset_index(drop=True)
+            df_this = df_this[['date', 'open', 'high', 'low', 'close']]
+            df_this[["up_or_down"]] = -1
+            df_this[["up_or_down_date"]] = ""
+            
+            for i in range(0, df_this.shape[0]):
+                print("{}/{}  {}/{}".format(i, df_this.shape[0], f_index, len(csv_files)))
+                for j in range(i+1, df_this.shape[0]):
+                    if df_this.loc[j, "low"]/df_this.loc[i, "close"] <= 0.995:
+                        df_this.loc[i, "up_or_down"] = 0
+                        df_this.loc[i, "up_or_down_date"] = df_this.loc[j, "date"]
+                        break
+                    elif df_this.loc[j, "high"]/df_this.loc[i, "close"] >= 1.005:
+                        df_this.loc[i, "up_or_down"] = 1
+                        df_this.loc[i, "up_or_down_date"] = df_this.loc[j, "date"]
+                        break
+                    elif j == df_this.shape[0] - 1:                    
+                        if df_this.loc[j, "low"] <= df_this.loc[i, "close"]:
+                            df_this.loc[i, "up_or_down"] = 0
+                            df_this.loc[i, "up_or_down_date"] = df_this.loc[j, "date"]
+                        else:
+                            df_this.loc[i, "up_or_down"] = 1
+                            df_this.loc[i, "up_or_down_date"] = df_this.loc[j, "date"]
 
-    #    seq_y = data[r_begin:r_end]
+            self.df_list.append(df_this)
+            if len(df_this) < self.seq_len + self.pred_len:
+                continue
+            for i in range(len(df_this)-self.seq_len-self.pred_len):
+                self.df_index.append([len(self.df_list)-1, i])
 
-    #    return seq_x, seq_y
+
+    def __getitem__(self, index):
+        import pdb; pdb.set_trace()
+        index_1 = self.df_index[index][0]
+        data = self.df_list[index_1]
+        
+        index_2 = self.df_index[index][1]
+
+        s_begin = index_2
+        s_end = s_begin + self.seq_len
+
+        seq_x = data[s_begin:s_end]
+
+        new_columns = ["norm_open", "norm_high", "norm_low", "norm_close"]
+       
+        base_index = seq_x.index[0]
+
+        seq_x[new_columns] = 1.0
+        for i in range(seq_x.shape[0]):
+            row_index = seq_x.index[i]
+            seq_x.loc[row_index, "norm_open"] = (seq_x.loc[row_index, "open"]/seq_x.loc[base_index, "open"]-1)*100
+            seq_x.loc[row_index, "norm_high"] = (seq_x.loc[row_index, "high"]/seq_x.loc[base_index, "open"]-1)*100
+            seq_x.loc[row_index, "norm_low"] = (seq_x.loc[row_index, "low"]/seq_x.loc[base_index, "open"]-1)*100
+            seq_x.loc[row_index, "norm_close"] = (seq_x.loc[row_index, "close"]/seq_x.loc[base_index, "open"]-1)*100
+            
+        
+        
+        seq_y = seq_x.iloc[-1]["up_or_down"]
+        seq_x = seq_x[new_columns].values
+        return seq_x, seq_y
 
     def __len__(self):
         return len(self.df_index)
  
-    #def __getitem__(self, index):
-    #    #import pdb
-    #    #pdb.set_trace()
-    #    s_begin = index
-    #    s_end = s_begin + self.seq_len
-
-    #    r_begin = s_end
-    #    r_end = r_begin + self.pred_len
-
-    #    seq_x = self.data_x[s_begin:s_end]
-    #    seq_y = self.data_y[r_begin:r_end]
-
-    #    return seq_x, seq_y        
-
-    #def __len__(self):
-    #    #return len(self.data_x) - self.seq_len - self.pred_len + 1
-    #    return len(self.data_x)
